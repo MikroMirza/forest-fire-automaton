@@ -11,14 +11,9 @@ Aplikacija rešava sledeće probleme i izazove:
 - Analiza emergentnog ponašanja  
 - Vizualizacija algoritama  
 - Eksperimentisanje sa parametrima  
+- Poređenje sekvencijalnih i paralelnih implementacija  
 
-Rešenje je implementirano kao **monolitna simulaciona aplikacija** koja koristi dvodimenzionalnu mrežu (grid) ćelija. Svaka ćelija predstavlja deo šume i može se nalaziti u jednom od diskretnih stanja.
-
-Simulacija se odvija u diskretnim vremenskim koracima, pri čemu se novo stanje svake ćelije računa isključivo na osnovu:
-
-- njenog trenutnog stanja  
-- stanja njenih susednih ćelija  
-- definisanih verovatnoća  
+Rešenje je implementirano korišćenjem **programskih jezika Python i Rust**, sa posebnim fokusom na **paralelizaciju i analizu performansi**.
 
 ---
 
@@ -45,6 +40,78 @@ Pravila simulacije se primenjuju **sinhrono** na sve ćelije u svakom vremenskom
 
 ---
 
+## Implementacija rešenja
+
+### Python implementacija
+
+U programskom jeziku **Python** implementirane su sledeće verzije:
+
+- **Sekvencijalna verzija**
+  - Iterativno ažuriranje stanja mreže
+  - Generisanje fajlova sa stanjima sistema po iteracijama
+
+- **Paralelna verzija**
+  - Paralelizacija korišćenjem `multiprocessing` biblioteke
+  - Podela mreže po redovima/blokovima
+  - Sinhronizacija rezultata po iteracijama
+
+Rezultat svake simulacije je **datoteka koja sadrži promene stanja sistema po iteracijama**, namenjena daljoj analizi i vizualizaciji.
+
+---
+
+### Rust implementacija
+
+U programskom jeziku **Rust** implementirane su sledeće verzije:
+
+- **Sekvencijalna verzija**
+  - Efikasna obrada dvodimenzionalne mreže
+  - Determinističko generisanje stanja po iteracijama
+
+- **Paralelna verzija**
+  - Paralelizacija uz oslonac na **niti (threads)**
+  - Podela mreže na nezavisne segmente
+  - Sinhrona razmena podataka između niti
+
+Kao i u Python verziji, rezultat simulacije su **datoteke sa stanjima sistema po iteracijama**.
+
+---
+
+## Eksperimenti skaliranja
+
+### Strong Scaling
+
+- Fiksna veličina problema 
+- Povećavanje broja procesa / niti
+- Merenje ubrzanja paralelizovane verzije u odnosu na sekvencijalnu
+
+Eksperimenti se sprovode odvojeno za:
+- Python implementaciju
+- Rust implementaciju
+
+---
+
+### Weak Scaling
+
+- Povećavanje veličine problema proporcionalno broju procesa / niti
+- Analiza održavanja performansi pri većem opterećenju
+- Poređenje ponašanja Python i Rust implementacija
+
+---
+
+## Vizualizacija rezultata
+
+Vizualizacija simulacije se vrši **na osnovu prethodno generisanih datoteka**, bez direktnog učešća simulacionog koda.
+
+- Vizualizacija stanja sistema po iteracijama
+- Prikaz evolucije požara kroz vreme
+- Implementacija vizualizacije u **Rust okruženju**
+- Moguća upotreba biblioteka:
+  - `plotters`
+  - `pixels`
+  - `macroquad`
+
+---
+
 ## Arhitektura sistema
 
 ### Glavne komponente
@@ -58,59 +125,34 @@ Pravila simulacije se primenjuju **sinhrono** na sve ćelije u svakom vremenskom
 - **Odgovornost:** Primena pravila celularnog automata  
 - **Funkcionalnosti:** Iteracije simulacije, generisanje sledećeg stanja mreže  
 
-#### Random Engine
-- **Odgovornost:** Generisanje slučajnih događaja  
-- **Funkcionalnosti:** Verovatnoća paljenja i rasta stabala  
+#### Parallel Engine
+- **Odgovornost:** Paralelizacija računanja  
+- **Python:** `multiprocessing`  
+- **Rust:** `std::thread`  
 
 #### Renderer
-- **Odgovornost:** Vizualizacija trenutnog stanja simulacije  
-- **Funkcionalnosti:** Prikaz mreže u realnom vremenu (različite boje za stanja)  
-
-#### Configuration Module
-- **Odgovornost:** Parametrizacija simulacije  
-- **Funkcionalnosti:** Veličina mreže, verovatnoće, brzina simulacije  
+- **Odgovornost:** Vizualizacija rezultata  
+- **Funkcionalnosti:** Prikaz stanja sistema po iteracijama  
 
 ---
 
 ## Tehnologije
 
-- **Programski jezik:** Rust  
+- **Programski jezici:** Python, Rust  
 - **Paradigma:** Cellular Automata  
-- **Randomizacija:** `rand` crate  
-- **Vizualizacija:**  
-  - Terminal (ASCII) **ili**
-  - `pixels` / `macroquad` / `bevy`  
+- **Python paralelizacija:** `multiprocessing`  
+- **Rust paralelizacija:** Threads (`std::thread`)  
+- **Randomizacija:** `rand` Rust, `random` Python
+- **Vizualizacija:** Plotters / pixels / macroquad  
 - **Build sistem:** Cargo  
-
----
-
-## Funkcionalnosti sistema
-
-- Inicijalizacija šumske mreže sa definisanom gustinom stabala  
-- Pokretanje i pauziranje simulacije  
-- Prikaz simulacije u realnom vremenu  
-- Podešavanje verovatnoće:
-  - spontanog paljenja  
-  - rasta novih stabala  
-- Reset simulacije  
-- Praćenje broja:
-  - stabala  
-  - zapaljenih ćelija  
-  - praznih polja  
-
----
-
-## Način rada simulacije
-
-1. Sistem inicijalizuje mrežu zadate veličine  
-2. Za svaki vremenski korak:
-   - računa se sledeće stanje svake ćelije  
-   - primenjuju se pravila celularnog automata  
-3. Novo stanje se renderuje  
-4. Proces se ponavlja dok korisnik ne zaustavi simulaciju  
 
 ---
 
 ## Cilj projekta
 
-Cilj projekta je demonstracija praktične primene **celularnih automata** i diskretnih simulacija u programskom jeziku **Rust**, kao i razumevanje kako jednostavna lokalna pravila mogu proizvesti kompleksno globalno ponašanje sistema.
+Cilj projekta je:
+
+- Implementacija i poređenje **sekvencijalnih i paralelnih rešenja**
+- Analiza performansi kroz **jako i slabo skaliranje**
+- Praktična primena **celularnih automata** u Python i Rust jezicima
+- Razumevanje uticaja paralelizacije na simulaciju kompleksnih sistema
