@@ -1,12 +1,12 @@
 import numpy as np
 from experimental.CLI import parse_args
 from simulation.sequential import run_sequential
-from simulation.parallel import step_parallel
+from simulation.parallel import *
 from IO.writer import save_grid
 from visualization.viewer_pygame import run_live_viewer
 from simulation.const import *
 import os
-frame_dir = "frames"
+
 
 def initialize_forest(width, height, thick_ratio=0.15):
     grid = np.random.choice(
@@ -27,17 +27,15 @@ def initialize_forest(width, height, thick_ratio=0.15):
 def main():
     args = parse_args()
 
-    grid = np.random.choice(
-        [EMPTY, TREE],
-        size=(args.height, args.width),
-        p=[0.2, 0.8]
-    )
+    grid = initialize_forest(args.width, args.height)
+
     if args.strike_x is not None and args.strike_y is not None:
-        x,y = args.strike_x,args.strike_y
-        if 0<= x <=args.width and 0<=x <= args.height:
-            grid[y,x] = BURNING
+        x, y = args.strike_x, args.strike_y
+        if 0 <= x < args.width and 0 <= y < args.height:
+            grid[y, x] = BURNING
         else:
             print(f"Strike coordinates ({x},{y}) out of bounds")
+
     if args.save:
         for i in range(args.steps):
             if args.parallel:
@@ -46,7 +44,11 @@ def main():
                 grid = run_sequential(grid, 1)
             save_grid(grid, i)
     else:
-        run_live_viewer(grid, args.steps)
+        run_live_viewer(
+            grid,
+            steps=args.steps,
+            parallel=args.parallel
+        )
 
 
 
