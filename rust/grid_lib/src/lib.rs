@@ -84,32 +84,31 @@ impl Grid {
 
                             PixelState::Tree | PixelState::ThickTree => {
                                 let mut on_fire = false;
+                                if rng.random::<f32>() < LIGHTNING_CHANCE {
+                                    on_fire = true;
+                                }
+                                if !on_fire{
+                                    for dy in [-1isize, 0, 1] {
+                                        for dx in [-1isize, 0, 1] {
+                                            if dy == 0 && dx == 0 { continue; }
 
-                                for dy in [-1isize, 0, 1] {
-                                    for dx in [-1isize, 0, 1] {
-                                        if dy == 0 && dx == 0 { continue; }
+                                            let ny = row as isize + dy;
+                                            let nx = col as isize + dx;
 
-                                        let ny = row as isize + dy;
-                                        let nx = col as isize + dx;
+                                            if ny >= 0 && ny < rows as isize &&
+                                            nx >= 0 && nx < cols as isize {
 
-                                        if ny >= 0 && ny < rows as isize &&
-                                        nx >= 0 && nx < cols as isize {
+                                                let n_idx = ny as usize * cols + nx as usize;
 
-                                            let n_idx = ny as usize * cols + nx as usize;
-
-                                            if old_data[n_idx] == PixelState::Burning &&
-                                            rng.random::<f32>() < FIRE_SPREAD_CHANCE
-                                            {
-                                                on_fire = true;
+                                                if old_data[n_idx] == PixelState::Burning &&
+                                                rng.random::<f32>() < FIRE_SPREAD_CHANCE
+                                                {
+                                                    on_fire = true;
+                                                }
                                             }
                                         }
                                     }
                                 }
-
-                                if rng.random::<f32>() < LIGHTNING_CHANCE {
-                                    on_fire = true;
-                                }
-
                                 if on_fire { PixelState::Burning } else { cell }
                             }
 
@@ -146,22 +145,24 @@ impl Grid {
                     }
                     PixelState::Tree | PixelState::ThickTree => {
                         let mut on_fire = false;
-                        for dy in [-1isize, 0, 1] {
-                            for dx in [-1isize, 0, 1] {
-                                if dy == 0 && dx == 0 { continue; }
-                                let ny = row as isize + dy;
-                                let nx = col as isize + dx;
-                                if ny >= 0 && ny < self.rows as isize && nx >= 0 && nx < self.cols as isize {
-                                    let n_idx = self.index(ny as usize, nx as usize);
-                                    if self.data[n_idx] == PixelState::Burning && rng.random::<f32>() < FIRE_SPREAD_CHANCE {
-                                        on_fire = true;
+                        if rng.random::<f32>() < LIGHTNING_CHANCE {
+                            on_fire = true;
+                        }
+
+                        if !on_fire{
+                            for dy in [-1isize, 0, 1] {
+                                for dx in [-1isize, 0, 1] {
+                                    if dy == 0 && dx == 0 { continue; }
+                                    let ny = row as isize + dy;
+                                    let nx = col as isize + dx;
+                                    if ny >= 0 && ny < self.rows as isize && nx >= 0 && nx < self.cols as isize {
+                                        let n_idx = self.index(ny as usize, nx as usize);
+                                        if self.data[n_idx] == PixelState::Burning && rng.random::<f32>() < FIRE_SPREAD_CHANCE {
+                                            on_fire = true;
+                                        }
                                     }
                                 }
                             }
-                        }
-
-                        if rng.random::<f32>() < LIGHTNING_CHANCE {
-                            on_fire = true;
                         }
 
                         if on_fire {
@@ -183,8 +184,8 @@ impl Grid {
     pub fn color_of(&self, state: PixelState) -> (u8, u8, u8) {
         match state {
             PixelState::Empty => (0, 0, 0),
-            PixelState::Tree => (3, 189, 189),
-            // PixelState::Tree => (0, 255, 0),
+            // PixelState::Tree => (3, 189, 189),
+            PixelState::Tree => (60, 150, 63),
             // PixelState::Tree => (190, 150, 120),
             PixelState::Burning => (255, 0, 0),
             PixelState::ThickTree => todo!(),

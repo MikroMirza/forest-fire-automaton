@@ -43,14 +43,14 @@ fn run_viewer(parallel: bool) {
         }
 
         window.update_with_buffer(&buffer, 512, 512).unwrap();
-        thread::sleep(Duration::from_millis(30));
+        thread::sleep(Duration::from_millis(0));
     }
 }
 
 
 fn run_benchmarks() {
-    let base_grid_size = 512;
-    let steps = 50;
+    let base_grid_size = 256;
+    let steps = 10;
 
     let strong = strong_scaling_rust(&Grid::new(base_grid_size, base_grid_size), steps);
 

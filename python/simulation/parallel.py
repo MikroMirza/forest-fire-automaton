@@ -1,50 +1,46 @@
 import numpy as np
-from threading import Thread
+from numba import njit, prange
 from simulation.const import *
-from multiprocessing import cpu_count
-def _worker(grid, new_grid, start, end):
-    chunk = grid[start:end]
-    burning = (chunk == BURNING)
-    tree = (chunk == TREE)
-    empty = (chunk == EMPTY)
 
-    padded_burning = np.pad(burning, pad_width=1, mode='constant', constant_values=False)
+@njit(parallel=True)
+def step_parallel(grid):
+    h, w = grid.shape
+    new_grid = grid.copy()
 
-    fire_risk_tree = np.zeros_like(chunk, dtype=bool)
-    for dy in [0, 1, 2]:
-        for dx in [0, 1, 2]:
-            if dy == 1 and dx == 1:
+    for y in prange(h):
+        for x in range(w):
+
+            cell = grid[y, x]
+            if cell == BURNING:
+                new_grid[y, x] = EMPTY
                 continue
-            fire_risk_tree |= padded_burning[dy:dy + chunk.shape[0], dx:dx + chunk.shape[1]]&(
-                np.random.rand(*chunk.shape) < FIRE_SPREAD_CHANCE)
 
-    new_chunk = chunk.copy()
-    new_chunk[burning] = EMPTY
-    new_chunk[tree & fire_risk_tree] = BURNING
-    new_chunk[tree & (np.random.rand(*chunk.shape) < LIGHTNING_CHANCE)] = BURNING
-    new_chunk[empty & (np.random.rand(*chunk.shape) < GROWTH_CHANCE)] = TREE
+            if cell == TREE:
 
-    new_grid[start:end] = new_chunk
+                fire_neighbor = False
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        if dy == 0 and dx == 0:
+                            continue
 
+                        ny = y + dy
+                        nx = x + dx
 
-def step_parallel(grid, n_threads=None):    
-    n_threads = cpu_count()
+                        if 0 <= ny < h and 0 <= nx < w:
+                            if grid[ny, nx] == BURNING:
+                                if np.random.random() < FIRE_SPREAD_CHANCE:
+                                    fire_neighbor = True
 
-    h, _ = grid.shape
-    chunk_h = h // n_threads
-    threads = []
-    new_grid = np.empty_like(grid)
+                if fire_neighbor:
+                    new_grid[y, x] = BURNING
+                    continue
 
-    for i in range(n_threads):
-        start = max(i * chunk_h - 1, 0)
-        end = min((i + 1) * chunk_h + 1, h)
-        t = Thread(target=_worker, args=(grid, new_grid, start, end))
-        t.start()
-        threads.append(t)
+                if np.random.random() < LIGHTNING_CHANCE:
+                    new_grid[y, x] = BURNING
+                    continue
 
-    for t in threads:
-        t.join()
+            if cell == EMPTY:
+                if np.random.random() < GROWTH_CHANCE:
+                    new_grid[y, x] = TREE
 
-    shm.close()
-    shm.unlink()
     return new_grid

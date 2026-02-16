@@ -1,11 +1,17 @@
-# experiments.py
 import numpy as np
 import matplotlib.pyplot as plt
+import time
+from multiprocessing import cpu_count
 from simulation.sequential import run_sequential
 from simulation.parallel import step_parallel
 from simulation.const import *
-import time
-from multiprocessing import cpu_count
+from numba import set_num_threads, get_num_threads
+
+def amdahl_speedup(p, n):
+    return 1 / ((1 - p) + p / n)
+
+def gustafson_speedup(p, n):
+    return n - (1 - p) * (n - 1)
 
 def initialize_forest(width, height, thick_ratio=0.15):
     grid = np.random.choice(
@@ -24,59 +30,91 @@ def measure_time(grid, steps=10, parallel=False, n_workers=None):
     times = []
     for _ in range(5):
         g = grid.copy()
+        
+        if parallel and n_workers is not None:
+            set_num_threads(n_workers)
+
         start = time.time()
         for _ in range(steps):
             if parallel:
-                g = step_parallel(g, n_workers)
+                g = step_parallel(g)
             else:
                 g = run_sequential(g, 1)
-        end = time.time()
-        times.append(end - start)
+        times.append(time.time() - start)
     mean_time = np.mean(times)
     std_time = np.std(times)
     return mean_time, std_time
 
-def strong_scaling_experiment(width, height, steps=10):
+def strong_scaling_experiment(width, height, steps=10, p=0.95):
     max_workers = cpu_count()
     grid = initialize_forest(width, height)
-    seq_time, _ = measure_time(grid, steps, parallel=False)
+    seq_time, seq_std = measure_time(grid, steps, parallel=False)
+
     results = []
     for workers in range(1, max_workers + 1):
         par_time, std = measure_time(grid, steps, parallel=True, n_workers=workers)
         speedup = seq_time / par_time
-        results.append((workers, speedup, par_time, std))
+        ideal = amdahl_speedup(p, workers)
+        results.append({
+            "workers": workers,
+            "time": par_time,
+            "std": std,
+            "speedup": speedup,
+            "ideal": ideal
+        })
     return results, seq_time
 
 def weak_scaling_experiment(base_width, base_height, steps=10):
     max_workers = cpu_count()
+
+    set_num_threads(1)
+    base_grid = initialize_forest(base_width, base_height)
+    base_time, _ = measure_time(base_grid, steps, parallel=True, n_workers=1)
+
     results = []
+
     for workers in range(1, max_workers + 1):
+        set_num_threads(workers)
+
         width = base_width * workers
-        height = base_height * workers
+        height = base_height
+
         grid = initialize_forest(width, height)
+
         par_time, std = measure_time(grid, steps, parallel=True, n_workers=workers)
-        results.append((workers, par_time, std))
+
+        results.append({
+            "workers": workers,
+            "time": par_time,
+            "std": std,
+            "baseline": base_time
+        })
+
     return results
 
-def plot_speedup(results, seq_time=None, title="Strong Scaling"):
-    workers = [r[0] for r in results]
-    speedup = [r[1] for r in results]
+def plot_strong(results, title="Python Strong Scaling (Time)"):
+    workers = [r["workers"] for r in results]
+    times = [r["time"] for r in results]
+
     plt.figure()
-    plt.plot(workers, speedup, "o-", label="Observed speedup")
-    if seq_time is not None:
-        plt.plot(workers, workers, "--", label="Ideal speedup")
+    plt.plot(workers, times, "o-", label="Observed time")
+
     plt.xlabel("Number of cores")
-    plt.ylabel("Speedup")
+    plt.ylabel("Execution time (s)")
     plt.title(title)
     plt.legend()
     plt.grid(True)
+
     plt.show()
 
-def plot_times(results, title="Weak Scaling"):
-    workers = [r[0] for r in results]
-    times = [r[1] for r in results]
+def plot_weak(results, title="Python Weak Scaling"):
+    workers = [r["workers"] for r in results]
+    times = [r["time"] for r in results]
+    baseline = results[0]["baseline"]
+
     plt.figure()
     plt.plot(workers, times, "o-", label="Observed time")
+    plt.axhline(baseline, linestyle="--", label="Ideal (constant time)")
     plt.xlabel("Number of cores")
     plt.ylabel("Execution time (s)")
     plt.title(title)
@@ -84,14 +122,16 @@ def plot_times(results, title="Weak Scaling"):
     plt.grid(True)
     plt.show()
 
+
 if __name__ == "__main__":
-    width, height = 256, 256
-    steps = 10
+    dummy = initialize_forest(2048, 2048)
+    step_parallel(dummy)
 
-    print("Strong scaling")
+    width, height = 2048,2048
+    steps = 2000
+
     strong_results, seq_time = strong_scaling_experiment(width, height, steps)
-    plot_speedup(strong_results, seq_time, title="Python Strong Scaling")
+    plot_strong(strong_results, "Strong Scaling")
 
-    print("Weak scaling")
     weak_results = weak_scaling_experiment(width, height, steps)
-    plot_times(weak_results, title="Python Weak Scaling")
+    plot_weak(weak_results, "Weak Scaling")
