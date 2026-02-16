@@ -45,4 +45,6 @@ def step_parallel(grid, n_threads=None):
     for t in threads:
         t.join()
 
+    shm.close()
+    shm.unlink()
     return new_grid
