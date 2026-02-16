@@ -3,12 +3,12 @@ import numpy as np
 
 from simulation.step import step
 from simulation.const import *
-from io.writer import grid_to_file
+from IO.writer import *
 HEIGHT = 512
 WIDTH = 512
 STEPS = 500
 
-if __name__ == '__main__':
+if __name__ == '____':
     np.random.seed(1389)
 
     grid = np.ones((HEIGHT,WIDTH), dtype=np.uint8)* TREE

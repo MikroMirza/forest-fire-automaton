@@ -1,33 +1,36 @@
 import pygame
 import numpy as np
 from simulation.const import COLORS
-from simulation.sequential import run_sequential  # or your step_parallel
 
-CELL_SIZE = 2
+from simulation.sequential import run_sequential
+from simulation.parallel import *
+
+CELL_SIZE = 0.1
 FPS = 60
 
-def run_live_viewer(grid, steps=1000):
+def run_live_viewer(grid, steps=1000, parallel=False, fps=30):
     pygame.init()
     height, width = grid.shape
-    screen = pygame.display.set_mode((width * CELL_SIZE, height * CELL_SIZE))
+    window_size = (width, height)
+    screen = pygame.display.set_mode(window_size)
     clock = pygame.time.Clock()
-    surface = pygame.Surface((width, height))
 
-    for _ in range(steps):
+    for step_idx in range(steps):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
 
-        grid = run_sequential(grid, 1)
+        if parallel:
+            grid = step_parallel(grid)
+        else:
+            grid = run_sequential(grid, 1)
 
-        rgb = np.zeros((width, height, 3), dtype=np.uint8)
-        for state, color in COLORS.items():
-            rgb[grid == state] = color
+        surf = np.zeros((height, width, 3), dtype=np.uint8)
+        for val, color in COLORS.items():
+            surf[grid == val] = color
 
-        pygame.surfarray.blit_array(surface, rgb.swapaxes(0, 1))
-        pygame.transform.scale(surface, screen.get_size(), screen)
+        pygame.surfarray.blit_array(screen, surf)
         pygame.display.flip()
-        clock.tick(FPS)
 
-    pygame.quit()
+        clock.tick(fps)
