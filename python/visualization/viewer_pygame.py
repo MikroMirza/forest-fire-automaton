@@ -5,10 +5,10 @@ from simulation.const import COLORS
 from simulation.sequential import run_sequential
 from simulation.parallel import *
 
-CELL_SIZE = 0.1
+CELL_SIZE = 1
 FPS = 60
 
-def run_live_viewer(grid, steps=1000, parallel=False, fps=30):
+def run_live_viewer(grid, steps=1000, parallel=False, fps=60):
     pygame.init()
     height, width = grid.shape
     window_size = (width, height)

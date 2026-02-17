@@ -16,7 +16,10 @@ def step_parallel(grid):
                 continue
 
             if cell == TREE:
-
+                if np.random.random() < LIGHTNING_CHANCE:
+                    new_grid[y, x] = BURNING
+                    continue
+                
                 fire_neighbor = False
                 for dy in (-1, 0, 1):
                     for dx in (-1, 0, 1):
@@ -32,10 +35,6 @@ def step_parallel(grid):
                                     fire_neighbor = True
 
                 if fire_neighbor:
-                    new_grid[y, x] = BURNING
-                    continue
-
-                if np.random.random() < LIGHTNING_CHANCE:
                     new_grid[y, x] = BURNING
                     continue
 

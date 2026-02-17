@@ -122,16 +122,114 @@ def plot_weak(results, title="Python Weak Scaling"):
     plt.grid(True)
     plt.show()
 
+def strong_scaling_table(width, height, steps=300, runs=30, workers_list=[1,2,4]):
+    grid = initialize_forest(width, height)
+
+    serial_times = []
+    for _ in range(runs):
+        t, _ = measure_time(grid, steps, parallel=False)
+        serial_times.append(t)
+
+    table = []
+
+    for i in range(runs):
+        row = {"run": i+1, "serial": serial_times[i]}
+
+        for w in workers_list:
+            t, _ = measure_time(grid, steps, parallel=True, n_workers=w)
+            row[f"{w}T"] = t
+
+        table.append(row)
+
+    return table
+
+def weak_scaling_table(base_width, base_height, steps=300, runs=30, workers_list=[1,2,4]):
+    table = []
+
+    for i in range(runs):
+        row = {"run": i+1}
+
+        for w in workers_list:
+            width = base_width * w
+            height = base_height
+
+            grid = initialize_forest(width, height)
+            t, _ = measure_time(grid, steps, parallel=True, n_workers=w)
+            row[f"{w}T"] = t
+
+        table.append(row)
+
+    return table
+
+
+def print_table(table, workers_list=[1,2,4]):
+    header = "Run | Serial | " + " | ".join(f"{w}T" for w in workers_list)
+    print(header)
+    print("-" * len(header))
+
+    for r in table:
+        line = f"{r['run']:>3} | {r['serial']:.3f} | " + " | ".join(
+            f"{r[f'{w}T']:.3f}" for w in workers_list
+        )
+        print(line)
+
+def plot_speedup(table, workers_list=[1,2,4], p=0.95):
+
+    serial_mean = np.mean([r["serial"] for r in table])
+
+    observed = []
+    for w in workers_list:
+        par_mean = np.mean([r[f"{w}T"] for r in table])
+        observed.append(serial_mean / par_mean)
+
+    amdahl = [amdahl_speedup(p, w) for w in workers_list]
+    gustafson = [gustafson_speedup(p, w) for w in workers_list]
+
+    plt.figure()
+    plt.plot(workers_list, observed, "o-", label="Observed")
+    plt.plot(workers_list, amdahl, "--", label="Amdahl ideal")
+    plt.plot(workers_list, gustafson, ":", label="Gustafson ideal")
+
+    plt.xlabel("Workers")
+    plt.ylabel("Speedup")
+    plt.title("Strong Scaling Speedup")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_weak_efficiency(table, workers_list=[1,2,4]):
+    base_mean = np.mean([r["1T"] for r in table])
+
+    efficiency = []
+    for w in workers_list:
+        mean_t = np.mean([r[f"{w}T"] for r in table])
+        efficiency.append(base_mean / mean_t)
+
+    plt.figure()
+    plt.plot(workers_list, efficiency, "o-", label="Observed")
+    plt.axhline(1.0, linestyle="--", label="Ideal")
+
+    plt.xlabel("Workers")
+    plt.ylabel("Efficiency")
+    plt.title("Weak Scaling")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
-    dummy = initialize_forest(2048, 2048)
-    step_parallel(dummy)
+    width, height = 1024, 1024
+    steps = 300
 
-    width, height = 2048,2048
-    steps = 2000
+    print("\n=== STRONG SCALING===")
+    strong_table = strong_scaling_table(width, height, steps)
+    print_table(strong_table)
 
-    strong_results, seq_time = strong_scaling_experiment(width, height, steps)
-    plot_strong(strong_results, "Strong Scaling")
+    plot_speedup(strong_table)
 
-    weak_results = weak_scaling_experiment(width, height, steps)
-    plot_weak(weak_results, "Weak Scaling")
+    print("\n=== WEAK SCALING ===")
+    weak_table = weak_scaling_table(width, height, steps)
+
+    for r in weak_table[:5]:
+        print(r)
+
+    plot_weak_efficiency(weak_table)
