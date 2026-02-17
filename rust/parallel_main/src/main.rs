@@ -70,24 +70,52 @@ fn run_benchmarks() {
 }
 
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let base_grid_size = 512;
+    let steps = 200;
 
+    let grid = Grid::new(base_grid_size, base_grid_size);
 
+    let raw_strong = strong_scaling_raw_table(&grid, steps);
+    print_raw_table(&raw_strong);
 
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let sp_rows = compute_sp(&raw_strong);
+    let (mean_s, std_s, mean_p, std_p) = sp_stats(&sp_rows);
 
-    match args.get(1).map(|s| s.as_str()) {
+    println!("\n=== Sequential / Parallel Fractions (4 threads) ===");
+    println!("S: mean = {:.3}, std_dev = {:.3}", mean_s, std_s);
+    println!("P: mean = {:.3}, std_dev = {:.3}", mean_p, std_p);
 
-        Some("bench") => {
-            run_benchmarks();
+    let strong_results: Vec<ResultRow> = raw_strong.iter().map(|(workers, times)| {
+        let m = times.iter().sum::<f64>() / times.len() as f64;
+        ResultRow {
+            workers: *workers,
+            mean: if *workers == 0 { 1.0 } else { raw_strong[1].1.iter().sum::<f64>() / times.len() as f64 / m }, 
+            std_dev: std_dev(times, m),
+            outlier: outlier(times, m),
         }
+    }).collect();
 
-        Some("parallel") => {
-            run_viewer(true);
-        }
+    plot_strong(&strong_results)?;
 
-        _ => {
-            run_viewer(false);
+    // --- Weak Scaling ---
+    let raw_weak = weak_scaling_raw_table(base_grid_size, steps);
+    print_weak_raw_table(&raw_weak);
+
+    let weak_results: Vec<ResultRow> = raw_weak.iter().map(|(workers, times)| {
+        let m = times.iter().sum::<f64>() / times.len() as f64;
+        ResultRow {
+            workers: *workers,
+            mean: raw_weak[0].1.iter().sum::<f64>() / times.len() as f64 / m, // efficiency relative to 1T
+            std_dev: std_dev(times, m),
+            outlier: outlier(times, m),
         }
-    }
+    }).collect();
+
+    plot_weak(&weak_results)?;
+
+    println!("\n=== Plots generated: strong_scaling.png, weak_scaling.png ===");
+
+    Ok(())
 }
+
