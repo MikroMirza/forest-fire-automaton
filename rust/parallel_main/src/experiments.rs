@@ -15,6 +15,7 @@ pub struct SpRow {
     pub s: f64,
     pub p: f64,
 }
+
 pub fn compute_sp(raw_data: &[(usize, Vec<f64>)]) -> Vec<SpRow> {
     let mut sp_rows = Vec::new();
 
@@ -225,13 +226,12 @@ pub fn plot_weak(
         .y_desc("Efficiency")
         .draw()?;
 
-    // Observed
     chart.draw_series(LineSeries::new(
         data.iter().map(|r| (r.workers, r.mean)),
         &BLUE,
     ))?;
 
-    // Ideal efficiency = 1
+    // Ideal  1
     chart.draw_series(LineSeries::new(
         (1..=max_workers).map(|w| (w, 1.0)),
         &BLACK,
@@ -310,7 +310,7 @@ pub fn print_table(title: &str, data: &[ResultRow]) {
 pub fn strong_scaling_raw_table(grid: &Grid, steps: usize)
     -> Vec<(usize, Vec<f64>)>
 {
-    let workers_list = [0, 1, 2, 4, 8]; // 0 = serial
+    let workers_list = [0, 1, 2, 4, 8]; 
     let runs = 30;
 
     let mut results = Vec::new();
@@ -368,7 +368,6 @@ pub fn weak_scaling_raw_table(
 
     for &workers in &workers_list {
 
-        // Scale grid with workers
         let grid = Grid::new(base_grid_size * workers, base_grid_size);
 
         let mut times = Vec::with_capacity(runs);
