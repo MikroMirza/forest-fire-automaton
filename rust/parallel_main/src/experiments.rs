@@ -18,8 +18,7 @@ pub struct SpRow {
 pub fn compute_sp(raw_data: &[(usize, Vec<f64>)]) -> Vec<SpRow> {
     let mut sp_rows = Vec::new();
 
-    // raw_data[0] = serial times
-    let serial_times = &raw_data[0].1; // 30 serial runs
+    let serial_times = &raw_data[0].1;
     let t4_times = raw_data.iter()
         .find(|(workers, _)| *workers == 4)
         .map(|(_, times)| times)
@@ -30,7 +29,7 @@ pub fn compute_sp(raw_data: &[(usize, Vec<f64>)]) -> Vec<SpRow> {
         let t4 = t4_times[i];
 
         let s = ((t4 / t1) * 4.0 - 1.0) / 3.0;
-        let s = s.clamp(0.0, 1.0); // avoid negative S due to measurement noise
+        let s = s.clamp(0.0, 1.0);
         let p = 1.0 - s;
 
         sp_rows.push(SpRow {
